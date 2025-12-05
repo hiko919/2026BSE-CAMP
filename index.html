@@ -50,7 +50,9 @@
             background: var(--primary); color: white; border: none;
             padding: 12px; border-radius: 12px; font-size: 16px; font-weight: bold;
             width: 100%; cursor: pointer; margin-top: 10px;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
         }
+        .btn:active { transform: scale(0.98); }
 
         /* --- 行程表專用樣式 --- */
         .day-tabs {
@@ -76,7 +78,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         }
         
-        /* 狀態樣式 */
         .schedule-item.past { background: #f0f0f0; color: #aaa; border: 1px solid #eee; }
         .schedule-item.past .time-badge { color: #aaa; background: #e0e0e0; }
 
@@ -100,6 +101,63 @@
             padding: 5px 8px; border-radius: 6px; font-weight: bold; font-size: 14px;
             min-width: 60px; text-align: center;
         }
+
+        /* --- 實驗表格樣式 (新增) --- */
+        .lab-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .lab-field { display: flex; flex-direction: column; }
+        .lab-field label { font-size: 12px; color: #666; margin-bottom: 5px; font-weight: bold; }
+        .lab-field input, .lab-field textarea { 
+            padding: 10px; border: 2px solid #eee; border-radius: 8px; font-size: 16px; text-align: center;
+            background: #FAFAFA; width: 100%;
+        }
+        .lab-field textarea { text-align: left; resize: none; }
+        .lab-field input:focus, .lab-field textarea:focus { border-color: var(--primary); background: white; }
+        .lab-unit { font-size: 10px; color: #aaa; text-align: right; margin-top: 2px; }
+
+        /* --- 討論區樣式 (新增) --- */
+        .topic-item { 
+            border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 12px; 
+            cursor: pointer; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: 0.2s; position: relative;
+        }
+        .topic-item:active { background-color: #f0f8ff; transform: scale(0.98); }
+        
+        .topic-meta {
+            font-size: 12px; color: #888; margin-top: 8px; 
+            display: flex; justify-content: space-between;
+        }
+
+        .new-topic-box { 
+            background: white; padding: 15px; border-radius: 16px; margin-bottom: 20px; 
+            border: 1px solid #eee; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .new-topic-box input, .new-topic-box textarea {
+            width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        #discussion-section h2 { color: var(--primary); margin-top: 0; }
+        #discussion-section p { line-height: 1.6; color: #555; }
+
+        #comments-list { margin-bottom: 80px; padding-bottom: 20px;} 
+        .comment-item {
+            background: #f9f9f9; padding: 12px 15px; border-radius: 12px; margin-bottom: 10px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .comment-input-area {
+            position: fixed; bottom: 60px; left: 0; width: 100%;
+            background: white; padding: 10px; display: flex; gap: 10px; align-items: center;
+            border-top: 1px solid #ddd; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 900;
+        }
+        .comment-user-badge {
+            background: var(--primary); color: white; padding: 5px 10px; 
+            border-radius: 15px; font-size: 12px; white-space: nowrap;
+        }
+        .comment-input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        
+        .back-btn { background: none; border: none; font-size: 16px; color: #666; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
 
         /* --- 底部導航 --- */
         .nav-bar {
@@ -167,7 +225,7 @@
 
             <div class="card">
                 <h3><i class="fas fa-info-circle"></i> 營隊公告</h3>
-                <p>歡迎來到台大生工營！請隨時注意行程表更新。</p>
+                <p>歡迎來到台大生工營！討論區功能已上線，請多加利用。</p>
             </div>
         </div>
 
@@ -189,18 +247,115 @@
             <h2>🏆 戰況排行榜</h2>
             <div class="card">
                 <p style="font-size: 12px; color: #888; text-align: center; margin-bottom: 15px;">數據即時更新</p>
-                <div id="scoreboard">
-                    </div>
+                <div id="scoreboard"></div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div class="card" style="text-align: center; padding: 15px; margin-bottom: 0;" onclick="alert('這裡連接到之前的實驗頁面！')">
+                <div class="card" style="text-align: center; padding: 15px; margin-bottom: 0; cursor: pointer;" onclick="openSubPage('experiment-page')">
                     <i class="fas fa-flask" style="font-size: 30px; color: var(--primary); margin-bottom: 10px;"></i>
                     <h3 style="font-size: 14px;">實驗紀錄</h3>
+                    <span style="font-size: 10px; color: #888;">填寫數據</span>
                 </div>
-                <div class="card" style="text-align: center; padding: 15px; margin-bottom: 0;" onclick="alert('開啟成發筆記本...')">
+                <div class="card" style="text-align: center; padding: 15px; margin-bottom: 0; cursor: pointer;" onclick="openSubPage('notes-page')">
                     <i class="fas fa-sticky-note" style="font-size: 30px; color: var(--accent); margin-bottom: 10px;"></i>
                     <h3 style="font-size: 14px;">成發筆記</h3>
+                    <span style="font-size: 10px; color: #888;">小組討論區</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="experiment-page" class="page container">
+            <button class="back-btn" onclick="switchPage('activity', document.querySelector('.nav-item:nth-child(4)'))">
+                <i class="fas fa-chevron-left"></i> 返回列表
+            </button>
+            <h2 style="color: var(--primary);">⚗️ 水質檢測紀錄表</h2>
+            <div class="card">
+                <p style="font-size: 12px; color: #888; text-align: center; margin-bottom: 15px;">
+                    第 <b id="exp-group-num">?</b> 小組數據 (同步中)
+                </p>
+                
+                <div class="lab-form">
+                    <div class="lab-field">
+                        <label>pH 酸鹼值</label>
+                        <input type="number" id="lab-ph" step="0.1" placeholder="7.0">
+                        <div class="lab-unit">無單位</div>
+                    </div>
+                    <div class="lab-field">
+                        <label>水溫 Temp.</label>
+                        <input type="number" id="lab-temp" step="0.1" placeholder="25.0">
+                        <div class="lab-unit">°C</div>
+                    </div>
+                    <div class="lab-field">
+                        <label>導電度 EC</label>
+                        <input type="number" id="lab-ec" placeholder="200">
+                        <div class="lab-unit">μS/cm</div>
+                    </div>
+                    <div class="lab-field">
+                        <label>濁度 Turbidity</label>
+                        <input type="number" id="lab-tb" placeholder="5.0">
+                        <div class="lab-unit">NTU</div>
+                    </div>
+                </div>
+
+                <div class="lab-field" style="margin-top: 15px;">
+                    <label>觀察與備註</label>
+                    <textarea id="lab-note" style="height:80px;" placeholder="水體顏色、氣味、採樣地點..."></textarea>
+                </div>
+
+                <div style="font-size:10px; color:#888; text-align:right; margin: 10px 0;" id="exp-status">尚未儲存</div>
+                
+                <button class="btn" onclick="saveLabData()" id="exp-btn">
+                    <i class="fas fa-cloud-upload-alt"></i> 上傳數據
+                </button>
+            </div>
+        </div>
+
+        <div id="notes-page" class="page container">
+            
+            <div id="topic-list-section">
+                <button class="back-btn" onclick="switchPage('activity', document.querySelector('.nav-item:nth-child(4)'))">
+                    <i class="fas fa-chevron-left"></i> 返回選單
+                </button>
+
+                <h2 id="discussion-header">📌 成發筆記討論區</h2>
+                
+                <div class="new-topic-box">
+                    <h4 style="margin-top:0; margin-bottom:10px;">＋ 發起新討論</h4>
+                    <p style="font-size:12px; color:#666; margin-bottom:5px;">發起人：<span id="new-topic-author" style="font-weight:bold; color:var(--primary);"></span></p>
+                    <input type="text" id="new-topic-title" placeholder="標題 (例: 實驗結果怪怪的)">
+                    <textarea id="new-topic-content" rows="3" placeholder="請詳細描述問題..."></textarea>
+                    <button class="btn" id="btn-create-topic" style="margin-top:5px; font-size:14px;">發佈主題</button>
+                </div>
+
+                <hr style="border:0; border-top:1px solid #ddd; margin: 20px 0;">
+
+                <div id="topics-container">
+                    <p style="text-align:center; color:#999;">正在載入小組討論串...</p>
+                </div>
+            </div>
+
+            <div id="discussion-section" style="display: none;">
+                <button class="back-btn" id="btn-back-to-topics">
+                    <i class="fas fa-arrow-left"></i> 回討論列表
+                </button>
+                
+                <div class="card" id="current-topic-display">
+                    <h2 id="view-topic-title" style="margin-bottom:10px;"></h2>
+                    <p id="view-topic-content" style="white-space: pre-wrap; color:#333;"></p>
+                    <div style="border-top:1px solid #eee; margin-top:10px; padding-top:10px; color:#888; font-size:12px;">
+                        發起人：<span id="view-topic-author" style="font-weight:bold;"></span>
+                        <span style="float:right;" id="view-topic-time"></span>
+                    </div>
+                </div>
+
+                <h3>💬 小組留言板</h3>
+                <div id="comments-list">
+                    </div>
+
+                <div class="comment-input-area">
+                    <span class="comment-user-badge" id="comment-user-badge"></span>
+                    <input type="text" id="my-comment" placeholder="輸入留言...">
+                    <button id="btn-send-comment" style="background:var(--primary); color:white; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
@@ -224,8 +379,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { 
+            getFirestore, doc, setDoc, updateDoc, arrayUnion, onSnapshot, 
+            collection, addDoc, query, orderBy, serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCIrDF_HbcjgvafKfGRjF7VhB0pLpJO6W8",
@@ -237,18 +394,24 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // --- 1. 資料庫 (學員名單 - 測試用) ---
+        // 全域變數
+        let currentUser = null;
+        let currentGroup = null;
+        let currentTopicId = null; 
+        let unsubscribeTopics = null;
+        let unsubscribeComments = null;
+
+        // --- 資料庫 (學員名單 - 測試用) ---
         const campersDB = [
             { name: "王小明", id: "A123456789", group: "1", room: "501" },
             { name: "陳小美", id: "B223456789", group: "5", room: "502" },
             { name: "測試員", id: "123", group: "8", room: "VIP" }
         ];
 
-        // --- 2. 行程資料庫 (完整 5 天) ---
+        // --- 行程資料庫 (完整) ---
         const scheduleDB = [
-            // Day 1 (1/26)
             { day: "1/26", date: "2026-01-26", time: "12:30", title: "破冰", loc: "舊體育館" },
             { day: "1/26", date: "2026-01-26", time: "13:00", title: "開營/成發介紹", loc: "博雅 101" },
             { day: "1/26", date: "2026-01-26", time: "14:00", title: "系所介紹", loc: "生工系館" },
@@ -258,8 +421,6 @@
             { day: "1/26", date: "2026-01-26", time: "19:00", title: "密室逃脫", loc: "共同教室" },
             { day: "1/26", date: "2026-01-26", time: "21:30", title: "整隊/搭捷運", loc: "公館站" },
             { day: "1/26", date: "2026-01-26", time: "22:00", title: "到寓見青旅", loc: "青旅" },
-
-            // Day 2 (1/27)
             { day: "1/27", date: "2026-01-27", time: "06:30", title: "起床", loc: "青旅" },
             { day: "1/27", date: "2026-01-27", time: "07:30", title: "吃早餐", loc: "青旅" },
             { day: "1/27", date: "2026-01-27", time: "08:30", title: "搭捷運", loc: "捷運站" },
@@ -270,8 +431,6 @@
             { day: "1/27", date: "2026-01-27", time: "18:30", title: "綜藝大聲公", loc: "晚會場地" },
             { day: "1/27", date: "2026-01-27", time: "21:30", title: "整隊/搭捷運", loc: "公館站" },
             { day: "1/27", date: "2026-01-27", time: "22:00", title: "到寓見青旅", loc: "青旅" },
-
-            // Day 3 (1/28) - 補完
             { day: "1/28", date: "2026-01-28", time: "06:30", title: "起床", loc: "青旅" },
             { day: "1/28", date: "2026-01-28", time: "07:30", title: "吃早餐", loc: "青旅" },
             { day: "1/28", date: "2026-01-28", time: "08:30", title: "搭捷運", loc: "捷運站" },
@@ -284,8 +443,6 @@
             { day: "1/28", date: "2026-01-28", time: "18:30", title: "綜藝大聲公", loc: "晚會場地" },
             { day: "1/28", date: "2026-01-28", time: "21:30", title: "整隊/搭捷運", loc: "公館站" },
             { day: "1/28", date: "2026-01-28", time: "22:00", title: "到寓見青旅", loc: "青旅" },
-
-            // Day 4 (1/29) - 補完
             { day: "1/29", date: "2026-01-29", time: "06:30", title: "起床", loc: "青旅" },
             { day: "1/29", date: "2026-01-29", time: "07:30", title: "吃早餐", loc: "青旅" },
             { day: "1/29", date: "2026-01-29", time: "08:30", title: "搭捷運", loc: "捷運站" },
@@ -297,8 +454,6 @@
             { day: "1/29", date: "2026-01-29", time: "18:30", title: "晚會", loc: "大禮堂" },
             { day: "1/29", date: "2026-01-29", time: "21:30", title: "整隊/搭捷運", loc: "公館站" },
             { day: "1/29", date: "2026-01-29", time: "22:00", title: "到寓見青旅", loc: "青旅" },
-
-            // Day 5 (1/30) - 補完
             { day: "1/30", date: "2026-01-30", time: "06:30", title: "起床", loc: "青旅" },
             { day: "1/30", date: "2026-01-30", time: "07:30", title: "吃早餐", loc: "青旅" },
             { day: "1/30", date: "2026-01-30", time: "08:30", title: "搭捷運", loc: "捷運站" },
@@ -306,7 +461,7 @@
             { day: "1/30", date: "2026-01-30", time: "12:00", title: "After Party", loc: "秘密基地" }
         ];
 
-        // --- 3. 戰況資料 (8 組) ---
+        // --- 戰況資料 (8 組) ---
         const teamScores = [
             { id: 1, score: 850 },
             { id: 2, score: 720 },
@@ -321,41 +476,49 @@
         let mockTime = null;
         let currentTabDay = "1/26";
 
-        // 登入
+        // ==========================================
+        //  功能 A: 登入 (合併版)
+        // ==========================================
         window.handleLogin = async function() {
             try {
-                // await signInAnonymously(auth); // 測試時可註解
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('app-container').style.display = 'block';
                 
-                // 登入後寫入個資 (這次要填入 group 與 room)
                 const inputName = document.getElementById('loginName').value || "學員";
                 const inputID = document.getElementById('loginID').value;
-                const user = campersDB.find(c => c.name === inputName && c.id === inputID) || { name: inputName, group: "?", room: "?" };
+                const user = campersDB.find(c => c.name === inputName && c.id === inputID) || { name: inputName, group: "1", room: "?" };
                 
+                currentUser = user;
+                currentGroup = user.group;
+
+                // 更新畫面資訊
                 document.getElementById('user-name').innerText = user.name;
                 document.getElementById('info-group').innerText = user.group;
                 document.getElementById('info-room').innerText = user.room;
+
+                // 實驗 & 討論區設定
+                document.getElementById('new-topic-author').innerText = currentUser.name;
+                document.getElementById('comment-user-badge').innerText = currentUser.name;
+                document.getElementById('discussion-header').innerText = `📌 第 ${currentGroup} 小組成發筆記`;
                 
+                // 啟動所有監聽
                 initSchedule();
-                renderScoreboard(); // 記得啟動計分板
+                renderScoreboard();
+                initGroupSync(currentGroup);
+                initDiscussion(currentGroup); 
             } catch(e) {
                 alert("登入錯誤: " + e.message);
             }
         };
 
+        // ==========================================
+        //  功能 B: 行程表 & 戰況
+        // ==========================================
         function initSchedule() {
             const today = mockTime ? new Date(mockTime) : new Date();
-            const month = today.getMonth() + 1;
-            const date = today.getDate();
-            const dateString = `${month}/${date}`;
-
+            const dateString = `${today.getMonth() + 1}/${today.getDate()}`;
             const validDays = ["1/26", "1/27", "1/28", "1/29", "1/30"];
-            if (validDays.includes(dateString)) {
-                currentTabDay = dateString;
-            } else {
-                currentTabDay = "1/26";
-            }
+            currentTabDay = validDays.includes(dateString) ? dateString : "1/26";
 
             renderTabs();
             renderList();
@@ -416,12 +579,9 @@
             }).join('');
         }
 
-        // 渲染計分板 (支援 8 組)
         function renderScoreboard() {
             const board = document.getElementById('scoreboard');
-            const maxScore = Math.max(...teamScores.map(t => t.score), 100); // 避免 0 分錯誤
-            
-            // 這裡不排序，依照小隊順序顯示比較好找
+            const maxScore = Math.max(...teamScores.map(t => t.score), 100); 
             board.innerHTML = teamScores.map(team => `
                 <div class="score-row" style="display:flex; align-items:center; margin-bottom:12px;">
                     <span style="width:50px; font-weight:bold; font-size:14px;">第 ${team.id} 小</span>
@@ -435,8 +595,8 @@
 
         function updateLiveStatus() {
             const now = mockTime ? new Date(mockTime) : new Date();
-            const dateStr = (now.getMonth()+1) + "/" + now.getDate();
             const timeVal = now.getHours() * 60 + now.getMinutes();
+            const dateStr = (now.getMonth()+1) + "/" + now.getDate();
             const todayEvents = scheduleDB.filter(e => e.day === dateStr);
             const currentEvent = todayEvents.find(e => {
                 const t = parseInt(e.time.split(':')[0])*60 + parseInt(e.time.split(':')[1]);
@@ -463,12 +623,188 @@
                 alert(`時間已切換至 ${input}`);
             }
         }
-        
+
+        // ==========================================
+        //  功能 C: 實驗同步 & 上傳
+        // ==========================================
+        function initGroupSync(groupId) {
+            document.getElementById('exp-group-num').innerText = groupId;
+            const docRef = doc(db, "groups", "group_" + groupId);
+
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if(data.labData) {
+                        const ids = ['lab-ph', 'lab-temp', 'lab-ec', 'lab-tb', 'lab-note'];
+                        ids.forEach(id => {
+                            if(document.activeElement.id !== id) {
+                                document.getElementById(id).value = data.labData[id] || "";
+                            }
+                        });
+                        if(data.labLastEditor) {
+                            const timeStr = data.labTime ? new Date(data.labTime).toLocaleTimeString() : "";
+                            document.getElementById('exp-status').innerText = `最後更新: ${data.labLastEditor} (${timeStr})`;
+                        }
+                    }
+                }
+            });
+        }
+
+        window.saveLabData = async function() {
+            const btn = document.getElementById('exp-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上傳中...';
+            
+            const labData = {
+                'lab-ph': document.getElementById('lab-ph').value,
+                'lab-temp': document.getElementById('lab-temp').value,
+                'lab-ec': document.getElementById('lab-ec').value,
+                'lab-tb': document.getElementById('lab-tb').value,
+                'lab-note': document.getElementById('lab-note').value
+            };
+
+            try {
+                await setDoc(doc(db, "groups", "group_" + currentGroup), {
+                    labData: labData,
+                    labLastEditor: currentUser.name,
+                    labTime: new Date().toISOString()
+                }, { merge: true });
+                
+                btn.innerHTML = '<i class="fas fa-check"></i> 上傳成功';
+                setTimeout(() => btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> 上傳數據', 1500);
+            } catch(e) {
+                console.error(e);
+                alert("上傳失敗");
+                btn.innerHTML = '<i class="fas fa-redo"></i> 重試';
+            }
+        };
+
+        // ==========================================
+        //  功能 D: 討論區邏輯 (分組)
+        // ==========================================
+        function initDiscussion(groupId) {
+            if(unsubscribeTopics) unsubscribeTopics();
+            const topicsRef = collection(db, "groups", "group_" + groupId, "topics");
+            const qTopics = query(topicsRef, orderBy("createdAt", "desc"));
+
+            unsubscribeTopics = onSnapshot(qTopics, (snapshot) => {
+                const container = document.getElementById("topics-container");
+                container.innerHTML = ""; 
+
+                if (snapshot.empty) {
+                    container.innerHTML = "<p style='text-align:center; color:#ccc; padding:20px;'>本小組還沒有討論，由你來發起第一個吧！</p>";
+                    return;
+                }
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const div = document.createElement("div");
+                    div.className = "topic-item";
+                    
+                    div.innerHTML = `
+                        <h3 style="margin:0 0 5px 0; font-size:16px;">${data.title}</h3>
+                        <p style="margin:0; font-size:13px; color:#666;">${data.content.substring(0, 40)}...</p>
+                        <div class="topic-meta">
+                            <span><i class="fas fa-user"></i> ${data.author}</span>
+                            <span>查看詳情 ></span>
+                        </div>
+                    `;
+                    div.onclick = () => openDiscussion(doc.id, data);
+                    container.appendChild(div);
+                });
+            });
+        }
+
+        function openDiscussion(docId, data) {
+            currentTopicId = docId;
+            document.getElementById("topic-list-section").style.display = "none";
+            document.getElementById("discussion-section").style.display = "block";
+            document.getElementById("view-topic-title").innerText = data.title;
+            document.getElementById("view-topic-content").innerText = data.content;
+            document.getElementById("view-topic-author").innerText = data.author;
+
+            loadComments(docId);
+        }
+
+        function loadComments(topicId) {
+            if (unsubscribeComments) unsubscribeComments();
+            const commentsRef = collection(db, "groups", "group_" + currentGroup, "topics", topicId, "comments");
+            const qComments = query(commentsRef, orderBy("createdAt", "asc"));
+
+            unsubscribeComments = onSnapshot(qComments, (snapshot) => {
+                const list = document.getElementById("comments-list");
+                list.innerHTML = ""; 
+
+                snapshot.forEach((doc) => {
+                    const c = doc.data();
+                    const div = document.createElement("div");
+                    div.className = "comment-item";
+                    div.innerHTML = `
+                        <div style="font-size:12px; color:#888; margin-bottom:4px; font-weight:bold;">${c.user}</div>
+                        <div style="color:#333;">${c.message}</div>
+                    `;
+                    list.appendChild(div);
+                });
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+        }
+
+        // 按鈕事件綁定
+        document.getElementById("btn-create-topic").onclick = async () => {
+            const title = document.getElementById("new-topic-title").value;
+            const content = document.getElementById("new-topic-content").value;
+            if(!title || !content) return alert("請輸入標題和內容");
+
+            try {
+                await addDoc(collection(db, "groups", "group_" + currentGroup, "topics"), {
+                    title: title, content: content, author: currentUser.name, createdAt: serverTimestamp()
+                });
+                document.getElementById("new-topic-title").value = "";
+                document.getElementById("new-topic-content").value = "";
+            } catch(e) { console.error(e); alert("發佈失敗"); }
+        };
+
+        document.getElementById("btn-send-comment").onclick = async () => {
+            const msg = document.getElementById("my-comment").value;
+            if(!msg) return;
+            try {
+                await addDoc(collection(db, "groups", "group_" + currentGroup, "topics", currentTopicId, "comments"), {
+                    user: currentUser.name, message: msg, createdAt: serverTimestamp()
+                });
+                document.getElementById("my-comment").value = "";
+            } catch(e) { console.error(e); alert("留言失敗"); }
+        };
+
+        document.getElementById("btn-back-to-topics").onclick = () => {
+            document.getElementById("discussion-section").style.display = "none";
+            document.getElementById("topic-list-section").style.display = "block";
+            currentTopicId = null;
+            if (unsubscribeComments) unsubscribeComments(); 
+        };
+
+        // ==========================================
+        //  功能 E: 頁面導航
+        // ==========================================
         window.switchPage = function(pageId, navElement) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
+            
+            if(navElement) {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                navElement.classList.add('active');
+            }
+            // 離開討論區時重置
+            if(pageId === 'notes-page') {
+                document.getElementById("discussion-section").style.display = "none";
+                document.getElementById("topic-list-section").style.display = "block";
+            }
+        }
+
+        window.openSubPage = function(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            // 讓導航保持在「活動」
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            navElement.classList.add('active');
+            document.querySelectorAll('.nav-item')[3].classList.add('active'); // 第四個是活動
         }
     </script>
 </body>
