@@ -54,28 +54,27 @@
         .day-tabs { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none; }
         .day-tab { background: white; color: #888; padding: 8px 16px; border-radius: 20px; font-size: 14px; white-space: nowrap; border: 1px solid #eee; cursor: pointer; }
         .day-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 10px rgba(42, 183, 202, 0.3); }
-        .schedule-item { display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-radius: 12px; background: white; margin-bottom: 12px; }
+        
+        .schedule-item { display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-radius: 12px; background: white; margin-bottom: 12px; transition: 0.3s; }
+        /* 💡 正在進行的樣式 */
+        .schedule-item.active-now { border: 2px solid var(--primary); background: #e0f7fa; transform: scale(1.02); box-shadow: 0 4px 10px rgba(42, 183, 202, 0.2); }
+        
         .time-badge { background: rgba(42, 183, 202, 0.1); color: var(--primary); padding: 5px 8px; border-radius: 6px; font-weight: bold; font-size: 14px; min-width: 65px; text-align: center; }
 
-        /* 🏆 排行榜 (優化版) */
+        /* 🏆 排行榜 */
         .score-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .score-row:last-child { border-bottom: none; }
         .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; font-size: 14px; background: #eee; color: #666; flex-shrink: 0; }
-        
-        /* 前三名特殊色 */
         .rank-1 .rank-badge { background: #FFD700; color: #fff; box-shadow: 0 2px 5px rgba(255, 215, 0, 0.4); }
         .rank-2 .rank-badge { background: #C0C0C0; color: #fff; }
         .rank-3 .rank-badge { background: #CD7F32; color: #fff; }
-
-        .group-info { flex: 0 0 100px; } /* 固定寬度給小隊名 */
+        .group-info { flex: 0 0 100px; }
         .group-name { font-weight: bold; font-size: 15px; color: #333; }
-        .group-medal { margin-right: 4px; }
-        
         .score-bar-bg { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; margin: 0 10px; }
         .score-bar-fill { height: 100%; background: var(--secondary); border-radius: 4px; }
         .score-num { font-weight: bold; font-size: 16px; min-width: 40px; text-align: right; color: var(--primary); }
 
-        /* ⚗️ 實驗與討論區 CSS */
+        /* ⚗️ 實驗與討論區 */
         .lab-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .lab-field { display: flex; flex-direction: column; }
         .lab-field label { font-size: 12px; color: #666; margin-bottom: 5px; font-weight: bold; }
@@ -268,25 +267,23 @@
         let currentTopicId = null;
         let unsubscribeComments = null;
         let unsubscribeTopics = null;
+        let statusInterval = null;
 
-        // 假名單 (可擴充)
         const campersDB = [
             { name: "王小明", id: "101", group: "1", room: "501" },
             { name: "陳小美", id: "102", group: "2", room: "502" }
         ];
 
-        // 🌟 核心：強力日期格式化 (解決格式跑掉問題)
+        // 🌟 強力日期格式化
         function cleanDate(raw) {
             if (!raw) return "";
-            // 如果已經是 "1/26" 這種格式，直接回傳
             if (String(raw).includes('/') && String(raw).length < 6) return raw;
-            
             const d = new Date(raw);
-            if (isNaN(d.getTime())) return String(raw).substring(0, 5); // 亂碼時只取前5字
+            if (isNaN(d.getTime())) return String(raw).substring(0, 5);
             return (d.getMonth() + 1) + "/" + d.getDate();
         }
 
-        // 🌟 核心：時間格式化
+        // 🌟 時間格式化
         function cleanTime(raw) {
             if (!raw) return "--:--";
             const s = String(raw);
@@ -350,7 +347,6 @@
         // 2. 頁面渲染邏輯
         // ========================
         
-        // 公告
         function renderAnnouncements() {
             const list = (cachedData.announcements || []).filter(a => String(a.active).toLowerCase() === "true");
             document.getElementById('announcement-container').innerHTML = list.length ? list.map(a => {
@@ -366,45 +362,99 @@
             }).join('') : `<div class="card" style="color:#888;">目前無公告</div>`;
         }
 
-        // 行程表 (整合日期清洗)
         function initSchedule() {
             const list = cachedData.schedule || [];
             if(list.length === 0) return;
 
-            // 這裡使用 cleanDate 清洗所有日期，確保格式統一
             const days = [...new Set(list.map(i => cleanDate(i.day)))];
-            if(!currentTabDay) currentTabDay = days[0];
+            
+            // 🌟 自動切換到今天的 Tab
+            const now = mockTime || new Date();
+            const todayStr = (now.getMonth() + 1) + "/" + now.getDate();
+            
+            if(!currentTabDay) {
+                // 如果今天有行程，就選今天，否則選第一天
+                currentTabDay = days.includes(todayStr) ? todayStr : days[0];
+            }
 
             document.getElementById('day-tabs').innerHTML = days.map(d => 
                 `<div class="day-tab ${d===currentTabDay?'active':''}" onclick="setTab('${d}')">${d}</div>`
             ).join('');
             
-            // 篩選時也要清洗日期來比對
-            const dayEvents = list.filter(i => cleanDate(i.day) === currentTabDay);
-            document.getElementById('schedule-list').innerHTML = dayEvents.map(e => `
-                <div class="schedule-item">
-                    <div class="time-badge">${cleanTime(e.time)}</div>
-                    <div>
-                        <div style="font-weight:bold;">${e.title}</div>
-                        <div style="font-size:13px; color:#888;">📍 ${e.loc}</div>
-                    </div>
-                </div>
-            `).join('');
-
-            updateHomeStatus();
+            renderScheduleList();
+            updateLiveStatus();
+            
+            // 每分鐘更新一次狀態
+            if(statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(() => {
+                renderScheduleList(); // 重新渲染列表以更新高亮
+                updateLiveStatus();   // 更新首頁卡片
+            }, 60000);
         }
 
         window.setTab = function(d) {
             currentTabDay = d;
-            initSchedule();
+            renderScheduleList();
         }
 
-        // 戰況板 (優化 UI)
+        function renderScheduleList() {
+            const list = cachedData.schedule || [];
+            const dayEvents = list.filter(i => cleanDate(i.day) === currentTabDay);
+            
+            // 🌟 計算當前時間 (分鐘數)
+            const now = mockTime || new Date();
+            const nowVal = now.getHours() * 60 + now.getMinutes();
+            // 檢查是否為「今天」(只有在查看當天 Tab 時才高亮)
+            const isToday = cleanDate(now) === currentTabDay;
+
+            document.getElementById('schedule-list').innerHTML = dayEvents.map(e => {
+                const timeStr = cleanTime(e.time);
+                const [h, m] = timeStr.split(':');
+                const eventVal = parseInt(h) * 60 + parseInt(m);
+                
+                // 邏輯：活動開始後 60 分鐘內視為「進行中」
+                const isActive = isToday && (nowVal >= eventVal && nowVal < eventVal + 60);
+
+                return `
+                <div class="schedule-item ${isActive ? 'active-now' : ''}">
+                    <div class="time-badge">${timeStr}</div>
+                    <div>
+                        <div style="font-weight:bold;">${e.title} ${isActive ? '<span style="color:red;font-size:12px;">(進行中)</span>' : ''}</div>
+                        <div style="font-size:13px; color:#888;">📍 ${e.loc}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // 更新首頁卡片狀態
+        function updateLiveStatus() {
+            const now = mockTime || new Date();
+            const nowVal = now.getHours() * 60 + now.getMinutes();
+            const todayStr = (now.getMonth() + 1) + "/" + now.getDate();
+            
+            const list = cachedData.schedule || [];
+            const todayEvents = list.filter(i => cleanDate(i.day) === todayStr);
+
+            const current = todayEvents.find(e => {
+                const [h, m] = cleanTime(e.time).split(':');
+                const t = parseInt(h)*60 + parseInt(m);
+                return nowVal >= t && nowVal < t + 60;
+            });
+
+            if (current) {
+                document.getElementById('home-status-title').innerText = current.title;
+                document.getElementById('home-status-time').innerText = `正在進行 (${current.loc})`;
+            } else {
+                document.getElementById('home-status-title').innerText = "目前無活動";
+                document.getElementById('home-status-time').innerText = "休息中";
+            }
+        }
+
         function renderScoreboard() {
             let list = cachedData.scores || [];
             if(list.length === 0) { document.getElementById('scoreboard').innerHTML = "尚無資料"; return; }
             
-            list.sort((a, b) => b.score - a.score); // 排序
+            list.sort((a, b) => b.score - a.score);
             const max = list[0].score || 100;
 
             document.getElementById('scoreboard').innerHTML = list.map((s, index) => {
@@ -429,7 +479,6 @@
             }).join('');
         }
 
-        // 資訊頁
         function renderInfo() {
             const list = cachedData.info || [];
             document.getElementById('info-list').innerHTML = list.map(i => {
@@ -450,20 +499,9 @@
             }).join('');
         }
 
-        function updateHomeStatus() {
-            const now = mockTime || new Date();
-            const timeVal = now.getHours() * 60 + now.getMinutes();
-            // ... (保持原本狀態邏輯，簡化以省空間) ...
-            const h = now.getHours().toString().padStart(2,'0');
-            const m = now.getMinutes().toString().padStart(2,'0');
-            document.getElementById('home-status-time').innerText = `${h}:${m}`;
-        }
-
         // ========================
         // 3. Firebase 功能
         // ========================
-        
-        // 實驗紀錄同步
         function initGroupSync(groupId) {
             onSnapshot(doc(db, "groups", "group_" + groupId), (docSnap) => {
                 if (docSnap.exists()) {
@@ -497,7 +535,6 @@
             } catch(e) { alert("上傳失敗"); btn.innerHTML = '重試'; }
         }
 
-        // 討論區
         function initDiscussion(groupId) {
             if(unsubscribeTopics) unsubscribeTopics();
             const ref = collection(db, "groups", "group_" + groupId, "topics");
@@ -578,14 +615,16 @@
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.querySelectorAll('.nav-item')[2].classList.add('active'); // 保持活動 Tab 高亮
+            document.querySelectorAll('.nav-item')[2].classList.add('active');
         };
 
         window.toggleDevMode = function() {
-            const t = prompt("設定時間 (1/26 14:00)");
+            const t = prompt("設定時間 (格式: 1/26 14:00)");
             if(t) {
                 mockTime = new Date(`2026/${t}:00`);
-                renderAll();
+                initSchedule();
+                renderScoreboard();
+                alert("時間已設定: " + t);
             }
         };
     </script>
