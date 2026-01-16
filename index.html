@@ -34,6 +34,10 @@
             border: 1px solid rgba(0,0,0,0.02); position: relative;
         }
 
+        /* 首頁狀態卡片 (可點擊) */
+        .home-status-card { cursor: pointer; transition: transform 0.2s; }
+        .home-status-card:active { transform: scale(0.98); }
+
         /* 🚨 公告特效 */
         .card.urgent { border: 2px solid var(--urgent); animation: border-pulse 2s infinite; }
         @keyframes border-pulse { 0% { border-color: var(--urgent); box-shadow: 0 0 5px rgba(230,57,70,0.2); } 50% { border-color: #ffb3b8; box-shadow: 0 0 15px rgba(230,57,70,0.4); } 100% { border-color: var(--urgent); box-shadow: 0 0 5px rgba(230,57,70,0.2); } }
@@ -52,12 +56,31 @@
 
         /* 📅 行程表 */
         .day-tabs { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none; }
-        .day-tab { background: white; color: #888; padding: 8px 16px; border-radius: 20px; font-size: 14px; white-space: nowrap; border: 1px solid #eee; cursor: pointer; }
-        .day-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 10px rgba(42, 183, 202, 0.3); }
+        .day-tab { background: white; color: #888; padding: 8px 16px; border-radius: 20px; font-size: 14px; white-space: nowrap; border: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .day-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 10px rgba(42, 183, 202, 0.3); transform: translateY(-2px); }
         
         .schedule-item { display: flex; align-items: flex-start; gap: 15px; padding: 15px; border-radius: 12px; background: white; margin-bottom: 12px; transition: 0.3s; }
-        /* 💡 正在進行的樣式 */
-        .schedule-item.active-now { border: 2px solid var(--primary); background: #e0f7fa; transform: scale(1.02); box-shadow: 0 4px 10px rgba(42, 183, 202, 0.2); }
+        
+        /* 💡 正在進行 */
+        .schedule-item.active-now { 
+            border: 2px solid var(--primary); 
+            background: #e0f7fa; 
+            transform: scale(1.02); 
+            box-shadow: 0 4px 10px rgba(42, 183, 202, 0.2); 
+            z-index: 2;
+        }
+
+        /* 🌑 已經結束 (變灰) */
+        .schedule-item.past {
+            background: #f4f4f4;
+            opacity: 0.6;
+            border: 1px solid #eee;
+            filter: grayscale(100%);
+        }
+        .schedule-item.past .time-badge {
+            background: #e0e0e0;
+            color: #888;
+        }
         
         .time-badge { background: rgba(42, 183, 202, 0.1); color: var(--primary); padding: 5px 8px; border-radius: 6px; font-weight: bold; font-size: 14px; min-width: 65px; text-align: center; }
 
@@ -101,9 +124,9 @@
     <div id="login-overlay">
         <div class="login-box">
             <h2 style="color: var(--primary); margin-top: 0;">2026 台大生工營</h2>
-            <p style="color: #888; font-size: 14px; margin-bottom: 20px;">請輸入姓名與學員編號</p>
+            <p style="color: #888; font-size: 14px; margin-bottom: 20px;">請輸入姓名與身分證字號</p>
             <input type="text" id="loginName" class="login-input" placeholder="姓名 (例: 王小明)">
-            <input type="text" id="loginID" class="login-input" placeholder="編號 (例: 101)">
+            <input type="password" id="loginID" class="login-input" placeholder="身分證字號 (例: A123456789)">
             <button class="btn" onclick="handleLogin()">進入營隊系統</button>
         </div>
     </div>
@@ -121,8 +144,8 @@
                 <div onclick="toggleDevMode()" style="cursor:pointer; padding:5px;"><i class="fas fa-clock" style="color:#ddd;"></i></div>
             </div>
 
-            <div class="card" style="background: linear-gradient(135deg, var(--primary), #4DD0E1); color: white;">
-                <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; margin-bottom: 10px;">現在狀態</div>
+            <div class="card home-status-card" style="background: linear-gradient(135deg, var(--primary), #4DD0E1); color: white;" onclick="jumpToCurrentSchedule()">
+                <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; margin-bottom: 10px;">現在狀態 (點擊查看)</div>
                 <h3 id="home-status-title" style="margin: 0 0 5px 0; font-size: 24px;">載入中...</h3>
                 <p id="home-status-time" style="margin: 0; opacity: 0.9;">--:--</p>
             </div>
@@ -257,7 +280,7 @@
         const db = getFirestore(app);
 
         // Google Apps Script URL
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5gNCBcAO5ktMfLh1wU4ajjJJCDW8V1hx8ykzr7o6VJpqCLa6OFhiZxAw9JmpNsH4q/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyw80JUzl6md7mEW8DqsIRojefbSjCeTLiXb67la7sTkS4CsmAJaEiU3cCuUzBnGmep/exec";
 
         // 狀態變數
         let currentUser = { name: "學員", group: "1", room: "無" };
@@ -269,27 +292,29 @@
         let unsubscribeTopics = null;
         let statusInterval = null;
 
-        const campersDB = [
-            { name: "王小明", id: "101", group: "1", room: "501" },
-            { name: "陳小美", id: "102", group: "2", room: "502" }
-        ];
-
-        // 🌟 強力日期格式化
+        // 🌟 時區校正後的日期清洗 (UTC -> +8)
         function cleanDate(raw) {
             if (!raw) return "";
-            if (String(raw).includes('/') && String(raw).length < 6) return raw;
+            if (String(raw).includes('/') && String(raw).length < 6) return raw; // 如果已經是 1/26 格式
+            
             const d = new Date(raw);
             if (isNaN(d.getTime())) return String(raw).substring(0, 5);
-            return (d.getMonth() + 1) + "/" + d.getDate();
+            
+            // 強制 +8 小時處理時區
+            const twTime = new Date(d.getTime() + (8 * 60 * 60 * 1000));
+            return (twTime.getUTCMonth() + 1) + "/" + twTime.getUTCDate();
         }
 
-        // 🌟 時間格式化
+        // 🌟 時區校正後的時間清洗 (UTC -> +8)
         function cleanTime(raw) {
             if (!raw) return "--:--";
             const s = String(raw);
+            
             if (s.includes("T") || s.length > 8) {
                 const d = new Date(raw);
-                return d.getHours().toString().padStart(2,'0') + ":" + d.getMinutes().toString().padStart(2,'0');
+                // 強制 +8 小時
+                const twTime = new Date(d.getTime() + (8 * 60 * 60 * 1000));
+                return twTime.getUTCHours().toString().padStart(2,'0') + ":" + twTime.getUTCMinutes().toString().padStart(2,'0');
             }
             return s.substring(0, 5);
         }
@@ -298,29 +323,52 @@
         // 1. 登入與初始化
         // ========================
         window.handleLogin = async function() {
-            const name = document.getElementById('loginName').value;
-            const id = document.getElementById('loginID').value;
+            const inputName = document.getElementById('loginName').value.trim();
+            const inputID = document.getElementById('loginID').value.trim();
             
-            const user = campersDB.find(c => c.name === name || c.id === id) || { name: name || "學員", group: "1", room: "?" };
-            currentUser = user;
+            if(!inputName || !inputID) {
+                alert("請輸入姓名與身分證字號");
+                return;
+            }
 
+            // 1. 隱藏輸入框，顯示 Loading
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('loading-mask').style.display = 'flex';
 
+            // 2. 抓取最新資料 (含 Campers 名單)
             await fetchData();
-            
-            document.getElementById('loading-mask').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
-            
-            document.getElementById('user-name').innerText = currentUser.name;
-            document.getElementById('info-group').innerText = currentUser.group;
-            document.getElementById('info-room').innerText = currentUser.room;
-            document.getElementById('exp-group-num').innerText = currentUser.group;
-            document.getElementById('discussion-header').innerText = `📌 第 ${currentUser.group} 小組成發筆記`;
 
-            initGroupSync(currentUser.group);
-            initDiscussion(currentUser.group);
-            renderAll();
+            // 3. 比對使用者
+            const campersList = cachedData ? (cachedData.campers || []) : [];
+            const user = campersList.find(c => c.name === inputName && String(c.id).toUpperCase() === inputID.toUpperCase());
+
+            if (user) {
+                // ✅ 登入成功
+                currentUser = user;
+                
+                // 進入主畫面
+                document.getElementById('loading-mask').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                
+                // 更新畫面資訊
+                document.getElementById('user-name').innerText = currentUser.name;
+                document.getElementById('info-group').innerText = currentUser.group;
+                document.getElementById('info-room').innerText = currentUser.room;
+                document.getElementById('exp-group-num').innerText = currentUser.group;
+                document.getElementById('discussion-header').innerText = `📌 第 ${currentUser.group} 小組成發筆記`;
+
+                // 啟動功能
+                initGroupSync(currentUser.group);
+                initDiscussion(currentUser.group);
+                renderAll();
+                
+                alert(`歡迎回來，${user.name}！\n你被分配在第 ${user.group} 小隊`);
+            } else {
+                // ❌ 登入失敗
+                document.getElementById('loading-mask').style.display = 'none';
+                document.getElementById('login-overlay').style.display = 'flex'; // 顯示回登入框
+                alert("登入失敗！\n請檢查姓名或身分證字號是否正確。\n(若為剛新增的名單，請重新整理網頁後再試)");
+            }
         };
 
         async function fetchData() {
@@ -362,18 +410,17 @@
             }).join('') : `<div class="card" style="color:#888;">目前無公告</div>`;
         }
 
+        // 🌟 行程表
         function initSchedule() {
             const list = cachedData.schedule || [];
             if(list.length === 0) return;
 
             const days = [...new Set(list.map(i => cleanDate(i.day)))];
             
-            // 🌟 自動切換到今天的 Tab
             const now = mockTime || new Date();
             const todayStr = (now.getMonth() + 1) + "/" + now.getDate();
             
             if(!currentTabDay) {
-                // 如果今天有行程，就選今天，否則選第一天
                 currentTabDay = days.includes(todayStr) ? todayStr : days[0];
             }
 
@@ -384,61 +431,121 @@
             renderScheduleList();
             updateLiveStatus();
             
-            // 每分鐘更新一次狀態
             if(statusInterval) clearInterval(statusInterval);
             statusInterval = setInterval(() => {
-                renderScheduleList(); // 重新渲染列表以更新高亮
-                updateLiveStatus();   // 更新首頁卡片
+                renderScheduleList(); 
+                updateLiveStatus();
             }, 60000);
         }
 
         window.setTab = function(d) {
             currentTabDay = d;
+            
+            // 💡 修正：手動更新 Tab 按鈕的 active 狀態
+            document.querySelectorAll('.day-tab').forEach(t => {
+                if(t.innerText === d) t.classList.add('active');
+                else t.classList.remove('active');
+            });
+
             renderScheduleList();
         }
 
+        // 🚀 新增：點擊首頁行程跳轉功能
+        window.jumpToCurrentSchedule = function() {
+            const now = mockTime || new Date();
+            const todayStr = (now.getMonth() + 1) + "/" + now.getDate();
+            
+            // 1. 切換到行程頁
+            switchPage('schedule', document.querySelectorAll('.nav-item')[1]);
+            
+            // 2. 切換到當天 Tab
+            const list = cachedData.schedule || [];
+            const days = [...new Set(list.map(i => cleanDate(i.day)))];
+            
+            if (days.includes(todayStr)) {
+                setTab(todayStr);
+            } else if (days.length > 0) {
+                setTab(days[0]); // 若今天沒行程，跳第一個
+            }
+        };
+
         function renderScheduleList() {
             const list = cachedData.schedule || [];
-            const dayEvents = list.filter(i => cleanDate(i.day) === currentTabDay);
+            const dayEvents = list
+                .filter(i => cleanDate(i.day) === currentTabDay)
+                .sort((a, b) => {
+                    const tA = cleanTime(a.time).split(':');
+                    const tB = cleanTime(b.time).split(':');
+                    return (parseInt(tA[0])*60 + parseInt(tA[1])) - (parseInt(tB[0])*60 + parseInt(tB[1]));
+                });
             
-            // 🌟 計算當前時間 (分鐘數)
             const now = mockTime || new Date();
             const nowVal = now.getHours() * 60 + now.getMinutes();
-            // 檢查是否為「今天」(只有在查看當天 Tab 時才高亮)
             const isToday = cleanDate(now) === currentTabDay;
 
-            document.getElementById('schedule-list').innerHTML = dayEvents.map(e => {
+            document.getElementById('schedule-list').innerHTML = dayEvents.map((e, index) => {
                 const timeStr = cleanTime(e.time);
                 const [h, m] = timeStr.split(':');
-                const eventVal = parseInt(h) * 60 + parseInt(m);
+                const startVal = parseInt(h) * 60 + parseInt(m);
                 
-                // 邏輯：活動開始後 60 分鐘內視為「進行中」
-                const isActive = isToday && (nowVal >= eventVal && nowVal < eventVal + 60);
+                let endVal;
+                if (index < dayEvents.length - 1) {
+                    const nextTimeStr = cleanTime(dayEvents[index + 1].time);
+                    const [nh, nm] = nextTimeStr.split(':');
+                    endVal = parseInt(nh) * 60 + parseInt(nm);
+                } else {
+                    endVal = startVal + 60; 
+                }
+                
+                const isActive = isToday && (nowVal >= startVal && nowVal < endVal);
+                const isPast = (isToday && nowVal >= endVal) || (cleanDate(now) > currentTabDay && !isToday && cleanDate(now) != currentTabDay);
+
+                let statusClass = '';
+                let statusLabel = '';
+                
+                if (isActive) {
+                    statusClass = 'active-now';
+                    statusLabel = '<span style="color:red;font-size:12px;margin-left:5px;">(進行中)</span>';
+                } else if (isPast) {
+                    statusClass = 'past';
+                }
 
                 return `
-                <div class="schedule-item ${isActive ? 'active-now' : ''}">
+                <div class="schedule-item ${statusClass}">
                     <div class="time-badge">${timeStr}</div>
-                    <div>
-                        <div style="font-weight:bold;">${e.title} ${isActive ? '<span style="color:red;font-size:12px;">(進行中)</span>' : ''}</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:bold;">${e.title} ${statusLabel}</div>
                         <div style="font-size:13px; color:#888;">📍 ${e.loc}</div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        // 更新首頁卡片狀態
         function updateLiveStatus() {
             const now = mockTime || new Date();
             const nowVal = now.getHours() * 60 + now.getMinutes();
             const todayStr = (now.getMonth() + 1) + "/" + now.getDate();
             
             const list = cachedData.schedule || [];
-            const todayEvents = list.filter(i => cleanDate(i.day) === todayStr);
+            const todayEvents = list
+                .filter(i => cleanDate(i.day) === todayStr)
+                .sort((a, b) => {
+                    const tA = cleanTime(a.time).split(':');
+                    const tB = cleanTime(b.time).split(':');
+                    return (parseInt(tA[0])*60 + parseInt(tA[1])) - (parseInt(tB[0])*60 + parseInt(tB[1]));
+                });
 
-            const current = todayEvents.find(e => {
+            const current = todayEvents.find((e, index) => {
                 const [h, m] = cleanTime(e.time).split(':');
-                const t = parseInt(h)*60 + parseInt(m);
-                return nowVal >= t && nowVal < t + 60;
+                const startVal = parseInt(h)*60 + parseInt(m);
+                let endVal;
+                if (index < todayEvents.length - 1) {
+                    const [nh, nm] = cleanTime(todayEvents[index + 1].time).split(':');
+                    endVal = parseInt(nh) * 60 + parseInt(nm);
+                } else {
+                    endVal = startVal + 60;
+                }
+                return nowVal >= startVal && nowVal < endVal;
             });
 
             if (current) {
